@@ -25,6 +25,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var import_express = __toESM(require("express"), 1);
 var import_http = __toESM(require("http"), 1);
 var import_path = __toESM(require("path"), 1);
+var import_fs = __toESM(require("fs"), 1);
 var import_crypto = __toESM(require("crypto"), 1);
 var import_ws = require("ws");
 var import_vite = require("vite");
@@ -511,18 +512,18 @@ async function start() {
     ws.on("close", () => connectedSockets.delete(ws));
     ws.on("error", () => connectedSockets.delete(ws));
   });
-  if (process.env.NODE_ENV !== "production") {
+  const distPath = import_fs.default.existsSync(import_path.default.join(process.cwd(), "dist", "index.html")) ? import_path.default.join(process.cwd(), "dist") : __dirname;
+  if (import_fs.default.existsSync(import_path.default.join(distPath, "index.html"))) {
+    app.use(import_express.default.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(import_path.default.join(distPath, "index.html"));
+    });
+  } else {
     const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
       appType: "spa"
     });
     app.use(vite.middlewares);
-  } else {
-    const distPath = import_path.default.join(process.cwd(), "dist");
-    app.use(import_express.default.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(import_path.default.join(distPath, "index.html"));
-    });
   }
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`Motor Health Monitor Server running on http://0.0.0.0:${PORT}`);

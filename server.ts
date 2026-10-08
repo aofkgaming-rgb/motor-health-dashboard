@@ -1,6 +1,7 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import crypto from 'crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer as createViteServer } from 'vite';
@@ -633,18 +634,21 @@ async function start() {
     ws.on('error', () => connectedSockets.delete(ws));
   });
 
-  if (process.env.NODE_ENV !== 'production') {
+  const distPath = fs.existsSync(path.join(process.cwd(), 'dist', 'index.html'))
+    ? path.join(process.cwd(), 'dist')
+    : __dirname;
+
+  if (fs.existsSync(path.join(distPath, 'index.html'))) {
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  } else {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
   }
 
   server.listen(PORT, '0.0.0.0', () => {
