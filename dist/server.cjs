@@ -336,8 +336,8 @@ app.post("/api/auth/logout", (req, res) => {
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    project: "Edge AI Motor Health Monitor",
-    system: "Revolution Jitter Predictive Maintenance",
+    project: "IntelliDrive AI",
+    system: "Predictive Motor Health Intelligence",
     isSimulating,
     currentMode,
     isDemoMode,
@@ -526,7 +526,7 @@ async function start() {
     app.use(vite.middlewares);
   }
   server.listen(PORT, "0.0.0.0", () => {
-    console.log(`Motor Health Monitor Server running on http://0.0.0.0:${PORT}`);
+    console.log(`IntelliDrive AI Server running on http://0.0.0.0:${PORT}`);
   });
 }
 start();

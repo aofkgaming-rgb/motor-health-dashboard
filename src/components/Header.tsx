@@ -63,14 +63,14 @@ export const Header: React.FC<HeaderProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-base tracking-tight text-white uppercase">
-                  MOBIUS<span className="text-cyan-400 font-light ml-0.5">AI</span>
+                  Intelli<span className="text-cyan-400 font-light ml-0.5">Drive</span>
                 </span>
                 <span className="text-[10px] bg-slate-700/80 text-cyan-300 font-mono px-1.5 py-0.2 rounded uppercase font-semibold">
-                  Edge ML
+                  AI
                 </span>
               </div>
               <span className="text-[10px] text-slate-400 block -mt-0.5 font-medium">
-                Motor Health Monitor with Revolution Jitter Analysis
+                Predictive Motor Health Intelligence
               </span>
             </div>
           </div>

@@ -1,6 +1,6 @@
 {
-  "name": "Edge AI Motor Health Monitor",
-  "description": "Edge AI Motor Health Monitor with Revolution Jitter Analysis for Predictive Maintenance, displaying live 6-feature condition telemetry, ML health predictions, real-time charts, and alerts.",
+  "name": "IntelliDrive AI",
+  "description": "IntelliDrive AI — Predictive Motor Health Intelligence with Revolution Jitter Analysis, live 6-feature condition telemetry, ML health predictions, real-time charts, and alerts.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

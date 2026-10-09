@@ -31,7 +31,7 @@ export const Esp32IntegrationModal: React.FC<Esp32IntegrationModalProps> = ({
   "motorTemp": 48.6
 }`;
 
-  const arduinoCode = `// ESP32 Edge AI Motor Health Monitor Firmware
+  const arduinoCode = `// ESP32 IntelliDrive AI Motor Health Firmware
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>

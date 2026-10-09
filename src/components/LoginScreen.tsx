@@ -47,7 +47,7 @@ const DEMO_PRESETS = [
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [identityId, setIdentityId] = useState<string>('ENG-101');
-  const [password, setPassword] = useState<string>('motor123');
+  const [password, setPassword] = useState<string>('password123');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -123,10 +123,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="font-black text-2xl tracking-wider text-white uppercase">
-              MOBIUS<span className="text-cyan-400 font-light">AI</span>
+              Intelli<span className="text-cyan-400 font-light">Drive</span>
             </span>
             <span className="text-xs bg-cyan-950/90 text-cyan-300 font-mono px-2 py-0.5 rounded border border-cyan-800/60 uppercase font-bold">
-              Edge Security Gateway
+              AI Security Gateway
             </span>
           </div>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
@@ -146,7 +146,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </div>
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              PORT 3000 ACTIVE
+              SECURE GATEWAY
             </span>
           </div>
 
