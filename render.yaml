@@ -8,3 +8,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Shared secret Board B sends in the X-Device-Key header.
+      # Set the value in the Render dashboard (Environment), never in this file.
+      - key: DEVICE_KEY
+        sync: false
+      # Run the labelled demo when no device is connected (true/false).
+      - key: DEMO_AUTOSTART
+        value: "true"

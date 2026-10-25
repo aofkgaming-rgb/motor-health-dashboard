@@ -1,6 +1,6 @@
 {
-  "name": "IntelliDrive AI",
-  "description": "IntelliDrive AI — Predictive Motor Health Intelligence with Revolution Jitter Analysis, live 6-feature condition telemetry, ML health predictions, real-time charts, and alerts.",
+  "name": "MHM \u00b7 Motor Health Monitor",
+  "description": "Edge AI motor health monitoring with revolution jitter analysis: live six-feature telemetry from an ESP32 sensor node, on-device Random Forest inference, alerts and CSV export.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

@@ -3,15 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IntelliDrive AI — Predictive Motor Health Intelligence</title>
-    <meta name="description" content="IntelliDrive AI — Predictive Motor Health Intelligence with Revolution Jitter Analysis, live 6-feature condition telemetry, ML health predictions, real-time charts, and alerts." />
-    <meta property="og:title" content="IntelliDrive AI — Predictive Motor Health Intelligence" />
-    <meta property="og:description" content="IntelliDrive AI — Predictive Motor Health Intelligence with Revolution Jitter Analysis, live 6-feature condition telemetry, ML health predictions, real-time charts, and alerts." />
+    <title>MHM · Motor Health Monitor</title>
+    <meta name="description" content="MHM — Edge AI motor health monitoring with revolution jitter analysis. Live six-feature telemetry from an ESP32 sensor node, on-device Random Forest inference, alerts and CSV export." />
+    <meta property="og:title" content="MHM · Motor Health Monitor" />
+    <meta property="og:description" content="MHM — Edge AI motor health monitoring with revolution jitter analysis. Live six-feature telemetry from an ESP32 sensor node, on-device Random Forest inference, alerts and CSV export." />
     <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232a78d6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83'/%3E%3Ccircle cx='12' cy='12' r='4' fill='%232a78d6'/%3E%3C/svg%3E" />
+    <style>
+      body { margin: 0; background-color: #f3f4f6; font-family: system-ui, -apple-system, sans-serif; color: #0f172a; }
+      #initial-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 1.5rem; }
+      .loader-spinner { width: 52px; height: 52px; border: 3px solid rgba(42, 120, 214, 0.2); border-top-color: #2a78d6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1.25rem; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .loader-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.35rem; }
+      .loader-sub { font-size: 0.8rem; color: #475569; max-width: 360px; line-height: 1.4; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-loader">
+        <div class="loader-spinner"></div>
+        <div class="loader-title">MHM · Motor Health Monitor</div>
+        <div class="loader-sub">Loading the dashboard. After a quiet period the server can take 30–60 s to wake up.</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
