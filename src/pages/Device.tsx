@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle2, AlertTriangle, MinusCircle } from 'lucide-react';
-import type { AuthUser, Scenario, ServerState } from '../types';
+import type { AuthUser, PublicConfig, Scenario, ServerState } from '../types';
+import { can } from '../lib/access';
 import { INFO } from '../content/info';
 import { Card, EmptyNote, KeyValue } from '../components/ui';
 import { api } from '../lib/useLive';
@@ -22,23 +23,6 @@ const SCENARIOS: { key: Scenario; label: string }[] = [
   { key: 'imbalance', label: 'Imbalance' },
   { key: 'impulsive', label: 'Impulsive (bearing-like)' },
   { key: 'thermal', label: 'Thermal / overload' },
-];
-
-const PINS_A: [string, string, string][] = [
-  ['ADXL345', 'SDA / SCL', 'D21 / D22 (I²C bus 0, 400 kHz) · SDO→GND (0x53) · CS→3V3'],
-  ['MLX90614', 'SDA / SCL', 'D25 / D26 (I²C bus 1, 100 kHz)'],
-  ['A3144 Hall', 'OUT', '22 kΩ / 33 kΩ divider → D13 (interrupt) · VCC from VIN (5 V)'],
-  ['ZMCT103C L1', 'AO', '22 kΩ / 33 kΩ + 10 nF → D34 (ADC1)'],
-  ['ZMCT103C L2', 'AO', '22 kΩ / 33 kΩ + 10 nF → D35 (ADC1)'],
-  ['ZMCT103C L3', 'AO', '22 kΩ / 33 kΩ + 10 nF → D32 (ADC1)'],
-  ['UART to Board B', 'TX2', 'GPIO17 → Board B G16 · common GND'],
-];
-
-const PINS_B: [string, string, string][] = [
-  ['OLED SSD1306', 'SDA / SCL', 'G21 / G22 (0x3C)'],
-  ['DS3231 RTC', 'SDA / SCL', 'G21 / G22 shared (0x68)'],
-  ['microSD', 'MOSI / MISO / SCK / CS', 'G23 / G19 / G18 / G5 · VCC 5 V'],
-  ['UART from Board A', 'RX2', 'G16 ← Board A GPIO17'],
 ];
 
 const EXAMPLE = `POST /api/v1/telemetry
@@ -91,22 +75,24 @@ export function Device({
   token,
   user,
   state,
+  config,
   clockOffset,
   onChanged,
 }: {
   token: string;
   user: AuthUser;
   state: ServerState | null;
+  config: PublicConfig | null;
   clockOffset: number;
   onChanged: () => void;
 }) {
   const now = useNow() + clockOffset;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [confirmClear, setConfirmClear] = useState<null | 'device' | 'demo'>(null);
   const d = state?.device;
-  const canDemo = user.role === 'ENGINEER' || user.role === 'ADMIN';
-  const isAdmin = user.role === 'ADMIN';
+  const canDemo = can(user, 'demo.control');
+  const m = config?.activeMotor ?? state?.motor;
+  const info = config?.deviceInfo;
 
   const run = async (fn: () => Promise<any>, ok: string) => {
     setBusy(true);
@@ -184,28 +170,31 @@ export function Device({
               ['Schema version', state?.schema ?? '—'],
               ['Stale after', `${(state?.staleAfterMs ?? 15000) / 1000} s`],
               ['Offline after', `${(state?.offlineAfterMs ?? 60000) / 1000} s`],
-              ['Server history', '15 min full, 24 h at 10 s'],
+              ['Server history', `15 min full, 24 h at 10 s, ${config?.retentionDays ?? 31} days at 1 min`],
             ]}
           />
         </Card>
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="Motor (bench)">
-          {state && (
+        <Card title={`Motor · ${m?.name ?? ''}`}>
+          {m && (
             <KeyValue
               rows={[
-                ['Make', state.motor.make],
-                ['Type', state.motor.type],
-                ['Rating', state.motor.power],
-                ['Supply', state.motor.voltage],
-                ['Connection', state.motor.connection],
-                ['Rated current', state.motor.ratedCurrent],
-                ['Rated speed', `${state.motor.ratedRpm} rpm (${state.motor.poles}-pole)`],
-                ['Frame / insulation', `${state.motor.frame} / ${state.motor.insulation}`],
+                ['Motor ID', m.id],
+                ['Make', m.make || '—'],
+                ['Type', m.type || '—'],
+                ['Rating', m.power || '—'],
+                ['Supply', m.voltage || '—'],
+                ['Connection', m.connection || '—'],
+                ['Rated current', m.ratedCurrentA !== null ? `${m.ratedCurrentA} A (line)` : '—'],
+                ['Rated speed', m.ratedRpm !== null ? `${m.ratedRpm} rpm${m.poles ? ` (${m.poles}-pole)` : ''}` : '—'],
+                ['Frame / insulation', `${m.frame || '—'} / ${m.insulation || '—'}`],
+                ['Location', m.location || '—'],
               ]}
             />
           )}
+          {user.role === 'ADMIN' && <p className="text-[12px] text-[var(--muted)] mt-3">Change this in Administration → Motor & parameters.</p>}
         </Card>
         <Card title="Acquisition" info={INFO.sampling}>
           {state && (
@@ -227,12 +216,11 @@ export function Device({
 
       <Card title="Wiring">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <PinTable title="Board A — sensor node (ESP32, 30-pin)" rows={PINS_A} />
-          <PinTable title="Board B — inference and gateway (ESP32, 38-pin)" rows={PINS_B} />
+          <PinTable title="Board A — sensor node (ESP32, 30-pin)" rows={info?.boardA ?? []} />
+          <PinTable title="Board B — inference and gateway (ESP32, 38-pin)" rows={info?.boardB ?? []} />
         </div>
-        <p className="text-[12px] text-[var(--muted)] mt-3">
-          Measure each CT module’s output with a multimeter before connecting it to a GPIO. The divider keeps a 5 V signal at about 3.0 V.
-        </p>
+        {info?.notes && <p className="text-[12px] text-[var(--muted)] mt-3">{info.notes}</p>}
+        <p className="text-[12px] text-[var(--muted)] mt-1">Designed connections, not yet verified on hardware.</p>
       </Card>
 
       <Card title="Packet format sent by Board B">
@@ -289,56 +277,15 @@ export function Device({
               </div>
             </div>
           ) : (
-            <p className="text-[13px] text-[var(--text-2)]">Only engineer and admin accounts can start or stop the demo.</p>
+            <p className="text-[13px] text-[var(--text-2)]">Your role cannot start or stop the demo.</p>
           )}
         </Card>
 
         <Card title="Server data">
-          {isAdmin ? (
-            confirmClear ? (
-              <div className="space-y-3">
-                <p className="text-[13px] text-[var(--text)]">
-                  Clear all <strong>{confirmClear === 'demo' ? 'demo' : 'device'}</strong> rows held in server memory? Charts and exports
-                  for that source start empty. The SD card in Board B is not affected. This cannot be undone.
-                </p>
-                <div className="flex gap-2">
-                  <button type="button" className="btn" onClick={() => setConfirmClear(null)}>
-                    Keep data
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    disabled={busy}
-                    onClick={() =>
-                      run(async () => {
-                        const r = await api(token, `/api/buffer?source=${confirmClear}`, { method: 'DELETE' });
-                        setConfirmClear(null);
-                        return r;
-                      }, `Cleared ${confirmClear} rows from server memory.`)
-                    }
-                  >
-                    Clear {confirmClear} history
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-[13px] text-[var(--text-2)]">
-                  Remove rows from server memory, for example before a fresh test run. Export first if you need them.
-                </p>
-                <div className="flex gap-2">
-                  <button type="button" className="btn btn-danger" onClick={() => setConfirmClear('device')}>
-                    Clear device history…
-                  </button>
-                  <button type="button" className="btn" onClick={() => setConfirmClear('demo')}>
-                    Clear demo history…
-                  </button>
-                </div>
-              </div>
-            )
-          ) : (
-            <p className="text-[13px] text-[var(--text-2)]">Only the admin account can clear server data.</p>
-          )}
+          <p className="text-[13px] text-[var(--text-2)]">
+            Clearing history, importing SD-card files, generating demo history and backups are in{' '}
+            {user.role === 'ADMIN' ? 'Administration → System & data.' : 'the admin’s System & data page.'}
+          </p>
         </Card>
       </section>
     </div>

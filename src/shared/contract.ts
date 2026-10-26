@@ -55,6 +55,8 @@ export interface TelemetryRow {
   calibrated: boolean | null; // has the 2-hour healthy baseline been captured?
   sensors: Record<string, string> | null; // e.g. { adxl: "ok", mlx: "ok", ct: "fault" }
   quality: string[]; // data-quality flags added by the server
+  /** Admin-registered custom parameters (Administration → Motor & parameters). Not in the 21 SD columns. */
+  extra?: Record<string, number> | null;
 }
 
 /** Plausibility limits. A value outside them is stored as null and flagged — not clipped. */
@@ -97,6 +99,7 @@ export function normalizeIncoming(
   raw: any,
   source: Source,
   nowMs: number,
+  extraKeys: string[] = [],
 ): { row?: TelemetryRow; error?: string } {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return { error: 'row must be a JSON object' };
@@ -196,6 +199,17 @@ export function normalizeIncoming(
     if (Object.keys(s).length) row.sensors = s;
   }
 
+  // Custom parameters registered by the admin: numeric fields with those names are kept.
+  if (extraKeys.length) {
+    const extra: Record<string, number> = {};
+    for (const k of extraKeys) {
+      const v = toNum(raw[k]);
+      if (typeof v === 'number') extra[k] = v;
+      else if (v === 'bad') quality.push(`not_a_number:${k}`);
+    }
+    if (Object.keys(extra).length) row.extra = extra;
+  }
+
   return { row };
 }
 
@@ -209,12 +223,19 @@ export type Severity = 'normal' | 'warning' | 'critical' | 'uncalibrated' | 'una
 export const Z_WARN = 3;
 export const Z_CRIT = 5;
 
-export function severityFromZ(z: number | null | undefined, calibrated: boolean | null): Severity {
+/** Thresholds in use. The server sets them from the admin settings; the dashboard from the server state. */
+export const THRESHOLDS = { zWarn: Z_WARN, zCrit: Z_CRIT };
+
+export function severityFromZ(
+  z: number | null | undefined,
+  calibrated: boolean | null,
+  t: { zWarn: number; zCrit: number } = THRESHOLDS,
+): Severity {
   if (calibrated === false) return 'uncalibrated';
   if (z === null || z === undefined || !Number.isFinite(z)) return 'unavailable';
   const a = Math.abs(z);
-  if (a >= Z_CRIT) return 'critical';
-  if (a >= Z_WARN) return 'warning';
+  if (a >= t.zCrit) return 'critical';
+  if (a >= t.zWarn) return 'warning';
   return 'normal';
 }
 
@@ -252,7 +273,12 @@ function csvCell(v: unknown): string {
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function rowToCsvLine(r: TelemetryRow): string {
+/** CSV header: the 21 standard columns, then any custom parameters, then nothing else. */
+export function csvHeader(extraKeys: string[] = [], columns: readonly string[] = CSV_COLUMNS): string {
+  return [...columns, ...extraKeys].join(',');
+}
+
+export function rowToCells(r: TelemetryRow): unknown[] {
   return [
     new Date(r.ts).toISOString(),
     r.device_id,
@@ -275,9 +301,51 @@ export function rowToCsvLine(r: TelemetryRow): string {
     r.z_max,
     r.calibrated === null ? null : r.calibrated ? 1 : 0,
     r.quality.join(';'),
-  ]
-    .map(csvCell)
-    .join(',');
+  ];
+}
+
+export function rowToCsvLine(r: TelemetryRow, extraKeys: string[] = [], columns: readonly string[] = CSV_COLUMNS): string {
+  const all = rowToCells(r);
+  const cells = columns.map((c) => all[CSV_COLUMNS.indexOf(c as any)]);
+  for (const k of extraKeys) cells.push(r.extra?.[k] ?? null);
+  return cells.map(csvCell).join(',');
+}
+
+/** Parse one SD-card CSV line (same 21 columns) back into a row. Used by the admin SD-card import. */
+export function csvLineToRaw(header: string[], line: string): Record<string, any> | null {
+  const cells: string[] = [];
+  let cur = '';
+  let q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') q = false;
+      else cur += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') {
+      cells.push(cur);
+      cur = '';
+    } else cur += ch;
+  }
+  cells.push(cur);
+  if (cells.length < 2) return null;
+  const o: Record<string, any> = {};
+  header.forEach((h, i) => (o[h.trim()] = cells[i] ?? ''));
+  const raw: Record<string, any> = { ...o };
+  if (o.timestamp_utc) {
+    const t = Date.parse(o.timestamp_utc.endsWith('Z') || /[+-]\d\d:?\d\d$/.test(o.timestamp_utc) ? o.timestamp_utc : o.timestamp_utc + 'Z');
+    raw.ts = Number.isFinite(t) ? t : undefined;
+  }
+  if (o.class !== undefined) raw.cls = o.class;
+  if (o.vote_share !== undefined && o.vote_share !== '') {
+    raw.votes = Math.round(Number(o.vote_share) * 1000);
+    raw.trees = 1000;
+  }
+  if (o.calibrated !== undefined && o.calibrated !== '') raw.calibrated = o.calibrated === '1' || o.calibrated === 'true';
+  return raw;
 }
 
 // ---------------------------------------------------------------------------

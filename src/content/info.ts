@@ -231,11 +231,40 @@ export const INFO: Record<string, InfoContent> = {
   },
   storage: {
     title: 'Where history is kept',
-    what: 'The server keeps every row for about 15 minutes and one row per 10 seconds for 24 hours, in memory.',
-    why: 'The free hosting plan has no permanent disk, so the server is not the permanent record.',
+    what: 'The server keeps every row for 15 minutes, one row per 10 s for 24 hours, and one row per minute for the retention period (31 days by default). One file per calendar day, at 10 s, is kept for exports.',
+    why: 'Short ranges show every detail; 7-day and 30-day charts are averaged per bucket so they stay readable.',
     details: [
-      { label: 'Permanent record', text: 'Board B writes every row to its SD card, one file per day, with automatic deletion after the chosen retention period.' },
-      { label: 'After a restart', text: 'The server history starts empty again. The SD card is unaffected.' },
+      { label: 'Permanent record', text: 'Board B writes every row to its SD card, one file per day. The admin can import an SD-card file to fill gaps in the server history.' },
+      { label: 'Hosting', text: 'On the Render free plan the server disk is wiped on every redeploy or restart. Locally, or with a persistent disk, the history survives restarts.' },
+      { label: 'Exports', text: 'Exports contain measured rows only, never averages. Choosing 1 min or 10 min keeps one measured row per step and skips the rest.' },
+    ],
+  },
+  predictionLog: {
+    title: 'Prediction changes',
+    what: 'A log of every time the model’s output label changed, for example Healthy → Imbalance, with the time it changed and how long the previous label lasted.',
+    why: 'It shows when a fault started and stopped being detected, which is easier to read than a stream of identical predictions.',
+    how: 'A new label must be reported for several consecutive rows (3 by default) before it counts as a change, so one noisy window does not create an entry.',
+    details: [
+      { label: 'In demo mode', text: 'The demo runs a fixed 150 s cycle: 40 s healthy, 30 s imbalance, 20 s healthy, 30 s impulsive (labelled “Bearing fault”), 20 s healthy, 30 s thermal (still labelled healthy). The changes repeat every 2.5 minutes. They are simulated, not faults on the motor.' },
+      { label: 'With the real device', text: 'Each entry is a change in the Random Forest output on Board B. Treat it as a prompt to inspect the motor, not a confirmed diagnosis.' },
+    ],
+  },
+  maintenance: {
+    title: 'Maintenance records',
+    what: 'The dates when maintenance was done on the monitored motor, what was done, by whom, and when it is next due.',
+    why: 'After maintenance the vibration and temperature often change. Marking the date on the trend charts explains a step in the data, and a repaired motor may need a new healthy baseline.',
+    details: [
+      { label: 'On the charts', text: 'Each maintenance date appears as a green dashed line on the 7-day and 30-day charts.' },
+      { label: 'Who can edit', text: 'Engineers and the admin by default. The admin can change this in Permissions.' },
+    ],
+  },
+  access: {
+    title: 'Role-based access',
+    what: 'Each account has a role: Operator, Engineer or Admin. The role decides which pages and actions are available.',
+    why: 'Least privilege: each person gets the controls their job needs, which avoids accidental changes and makes every change traceable in the audit log.',
+    details: [
+      { label: 'Enforced on the server', text: 'The server checks the role on every request. Hiding a button is only for convenience.' },
+      { label: 'Changing access', text: 'The admin can change what Operators and Engineers may do in Administration → Permissions. The change applies immediately.' },
     ],
   },
 };

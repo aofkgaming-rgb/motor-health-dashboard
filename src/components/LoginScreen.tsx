@@ -1,21 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import type { AuthUser } from '../types';
 
 interface LoginScreenProps {
   onLoginSuccess: (user: AuthUser) => void;
+  /** Why the user is back here, e.g. "You were signed out by the admin." */
+  notice?: string | null;
 }
 
-// The three project accounts (unchanged). Click one to fill the form.
-const ACCOUNTS = [
-  { id: 'ENG-101', password: 'password123', name: 'Jeet', role: 'Engineer' },
-  { id: 'OP-202', password: 'password123', name: 'Dhruchit', role: 'Operator' },
-  { id: 'ADMIN-001', password: 'admin123', name: 'Manav Sinh', role: 'Admin' },
-];
-
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const [identityId, setIdentityId] = useState('ENG-101');
-  const [password, setPassword] = useState('password123');
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, notice }) => {
+  // Accounts are listed by the server (the admin can hide this list). Clicking one fills the ID only.
+  const [accounts, setAccounts] = useState<{ id: string; name: string; role: string }[]>([]);
+  const [identityId, setIdentityId] = useState('');
+  const [password, setPassword] = useState('');
+  useEffect(() => {
+    fetch('/api/auth/accounts')
+      .then((r) => (r.ok ? r.json() : { accounts: [] }))
+      .then((d) => setAccounts(d.accounts || []))
+      .catch(() => {});
+  }, []);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +63,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </p>
         </div>
 
+        {notice && (
+          <p role="status" className="mb-3 text-[12.5px] rounded-md px-3 py-2 bg-[var(--warn-soft)] text-[var(--warn-ink)]">
+            {notice}
+          </p>
+        )}
         <form onSubmit={submit} className="card p-5 space-y-4" noValidate>
           <div>
             <label htmlFor="uid" className="block text-[12.5px] font-medium text-[var(--text)] mb-1.5">
@@ -119,17 +127,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </button>
         </form>
 
-        <div className="mt-4">
+        {accounts.length > 0 && <div className="mt-4">
           <div className="eyebrow mb-2">Project accounts</div>
           <div className="card divide-y divide-[var(--border)]">
-            {ACCOUNTS.map((a) => (
+            {accounts.map((a) => (
               <button
                 key={a.id}
                 type="button"
                 onClick={() => {
                   setIdentityId(a.id);
-                  setPassword(a.password);
+                  setPassword('');
                   setError(null);
+                  document.getElementById('pw')?.focus();
                 }}
                 className={`w-full flex items-center justify-between px-4 py-2.5 text-left text-[13px] hover:bg-[var(--surface-2)] cursor-pointer ${
                   identityId.toUpperCase() === a.id ? 'bg-[var(--accent-soft)]' : ''
@@ -143,7 +152,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </button>
             ))}
           </div>
-        </div>
+          <p className="text-[11.5px] text-[var(--muted)] mt-2">Choose your account, then type your password. Each role sees a different set of pages.</p>
+        </div>}
       </div>
     </div>
   );

@@ -207,7 +207,7 @@ export function KeyValue({ rows }: { rows: [React.ReactNode, React.ReactNode][] 
       {rows.map(([k, v], i) => (
         <div key={i} className="flex items-start justify-between gap-4 py-2 first:pt-0 last:pb-0">
           <dt className="text-[var(--text-2)]">{k}</dt>
-          <dd className="text-right font-medium text-[var(--text)] num break-all">{v}</dd>
+          <dd className="text-right font-medium text-[var(--text)] num break-words min-w-0">{v}</dd>
         </div>
       ))}
     </dl>

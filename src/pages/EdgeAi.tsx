@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { CheckCircle2, MinusCircle } from 'lucide-react';
-import type { Alert, ServerState, TelemetryRow } from '../types';
+import type { Alert, PublicConfig, ServerState, TelemetryRow } from '../types';
 import { FEATURE_KEYS } from '../shared/contract';
 import { INFO, PARAMS } from '../content/info';
+import { ago } from '../lib/format';
 import { Card, EmptyNote, InfoBlock, InfoButton, KeyValue } from '../components/ui';
 import { dateTime, fmt } from '../lib/format';
 import { isStale } from './Overview';
@@ -11,11 +12,13 @@ export function EdgeAi({
   rows,
   latest,
   state,
+  config,
   alerts,
 }: {
   rows: TelemetryRow[];
   latest: TelemetryRow | null;
   state: ServerState | null;
+  config: PublicConfig | null;
   alerts: Alert[];
 }) {
   const stale = isStale(state);
@@ -28,10 +31,26 @@ export function EdgeAi({
     return { total, items: [...m.entries()].sort((a, b) => b[1] - a[1]) };
   }, [rows]);
 
-  const transitions = alerts
-    .filter((a) => a.category === 'model' && a.source === state?.activeSource)
-    .slice(-15)
-    .reverse();
+  // Each change of the model output, with how long the previous label lasted
+  const transitions = useMemo(() => {
+    const list = alerts.filter((a) => a.category === 'model' && a.source === state?.activeSource);
+    return list
+      .map((a, i) => {
+        const m = /changed: (.*) → (.*)$/.exec(a.title);
+        return {
+          id: a.id,
+          ts: a.ts,
+          from: m?.[1] ?? '—',
+          to: m?.[2] ?? a.title,
+          lasted: i > 0 ? a.ts - list[i - 1].ts : null,
+          ack: a.ack,
+        };
+      })
+      .slice(-20)
+      .reverse();
+  }, [alerts, state?.activeSource]);
+  const isDemo = state?.activeSource === 'demo';
+  const mi = config?.model;
 
   const modelLabel = latest?.model ?? state?.device?.model ?? null;
 
@@ -71,7 +90,9 @@ export function EdgeAi({
           <KeyValue
             rows={[
               ['Runs on', 'ESP32 Board B (on-device)'],
-              ['Algorithm', 'Random Forest, 50 trees'],
+              ['Algorithm', mi?.algorithm || 'Random Forest'],
+              ['Classes', mi?.classes || '—'],
+              ['Trained on', mi?.trainedOn || '—'],
               ['Model id', modelLabel ?? '—'],
               [
                 'Mode',
@@ -83,7 +104,7 @@ export function EdgeAi({
                       ? 'Trained model'
                       : 'Unknown',
               ],
-              ['Validation metrics', 'Not available — training in progress'],
+              ['Validation metrics', mi?.validation || 'Not available'],
             ]}
           />
         </Card>
@@ -149,19 +170,43 @@ export function EdgeAi({
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="Prediction changes" bodyClass="p-0">
+        <Card title="Prediction changes" info={INFO.predictionLog} bodyClass="p-0">
+          <p className="px-4 pt-3 pb-2 text-[12.5px] text-[var(--text-2)] border-b border-[var(--border)]">
+            Each line is a moment when the model’s answer changed, for example from <em>Healthy</em> to <em>Imbalance</em>. “Lasted” is how
+            long the previous answer was held.
+            {isDemo && (
+              <span className="block mt-1 text-[var(--text)]">
+                <strong className="font-semibold">Demo:</strong> these changes are simulated. The demo repeats a 150 s cycle (healthy → imbalance →
+                healthy → bearing-like → healthy → thermal), so the same pattern returns every 2.5 minutes. They are not faults on the motor.
+              </span>
+            )}
+          </p>
           {transitions.length ? (
-            <ul className="divide-y divide-[var(--border)]">
-              {transitions.map((a) => (
-                <li key={a.id} className="px-4 py-2.5 flex items-baseline justify-between gap-3 text-[13px]">
-                  <span>{a.title.replace('Model output changed: ', '')}</span>
-                  <span className="text-[11.5px] text-[var(--muted)] num whitespace-nowrap">{dateTime(a.ts)}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="table num">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Change</th>
+                    <th>Previous answer lasted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transitions.map((t) => (
+                    <tr key={t.id}>
+                      <td className="whitespace-nowrap text-[var(--text-2)]">{dateTime(t.ts)}</td>
+                      <td className="whitespace-nowrap">
+                        <span className="text-[var(--text-2)]">{t.from}</span> → <span className="font-medium">{t.to}</span>
+                      </td>
+                      <td className="whitespace-nowrap text-[var(--text-2)]">{t.lasted !== null ? ago(t.lasted).replace(' ago', '') : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <div className="px-4">
-              <EmptyNote title="No changes recorded">Each change of the model output since the server started is listed here.</EmptyNote>
+              <EmptyNote title="No changes recorded">Each change of the model output is listed here.</EmptyNote>
             </div>
           )}
         </Card>

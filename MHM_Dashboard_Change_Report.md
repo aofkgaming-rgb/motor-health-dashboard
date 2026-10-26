@@ -171,3 +171,32 @@ Not tested: real ESP32 hardware, deployment on Render after these changes, Excel
 4. **Calibration:** 2-hour healthy run to produce baseline statistics and z-scores.
 5. **Model:** train on CWRU + MaFaulDa, fix the class scheme, export to C++, send `cls`, `votes`, `trees`, `model`.
 6. **Bench validation:** compare rpm, current (clamp meter) and temperature with references.
+
+---
+
+# Update — 26 Oct 2026: role-based dashboard (RBAC), maintenance, 30-day history, exports, admin portal
+
+## What changed
+
+| Area | Change |
+|---|---|
+| Roles | Operator, Engineer and Admin now see different sidebars and pages. The server checks the role on every API request (403 if not allowed). |
+| Operator view | Big status banner (“Motor running normally / Check the motor / Critical — inspect now”) with what to do, alert acknowledgement with a note, maintenance card. Pages: Overview, Parameters (24 h), Alerts, Maintenance. |
+| Engineer view | Adds Edge AI, History & export, Device; 7-day and 30-day trends; exports; add/edit maintenance; demo control. |
+| Admin portal | Users & sessions (add, edit, disable, delete, reset password, **sign out any user instantly**), Motor & parameters (motor profiles and active motor, parameter names/units/decimals, optional absolute limits, editable ⓘ text, **custom parameters** for new packet fields, z thresholds, model and wiring information), Permissions (editable table for Operator/Engineer), Audit log (filter + CSV), System & data (site, retention, time zone, session length, backup/restore, SD-card CSV import, demo history, clear history). |
+| Maintenance | Records with date done (editable), type, description, done by, next due; shown on Overview and as green markers on 7/30-day charts. |
+| Parameters | Ranges 15 min / 24 h / 7 days / 30 days, limit lines, maintenance markers, day-by-day table (mean, lowest, highest). |
+| History & export | Ranges up to 30 days. **One-day export** (calendar day, every stored row, CSV or Excel). **Selective data export**: from–to dates on a calendar, row spacing (10 s / 1 min / 10 min / 1 h), column choice, CSV or Excel. |
+| Edge AI | “Prediction changes” now explains itself, shows how long each answer lasted, and states that demo changes are a scripted 150 s cycle. Model information comes from admin settings. |
+| Storage | 15 min every row, 24 h at 10 s, 31 days at 1 min in memory; one file per day at 10 s in `DATA_DIR` for exports. |
+| Security | scrypt password hashes, 5 wrong passwords → 5 min lock, sessions listed and revocable, admin cannot remove own admin role, at least one admin always remains, all changes audited. |
+| Contract | The 21 SD/CSV columns are unchanged. Custom parameters are extra columns after them. |
+
+## Tested (software only)
+
+- 39 API checks: each role’s allowed and blocked routes, maintenance add/edit/validation, 7-day access per role, exports (CSV 1 440 rows for a demo day; Excel opened with openpyxl, 2 sheets), permission change applied live, motor add/activate, custom parameter received from a device POST, admin force sign-out (token rejected afterwards), self-demotion blocked, password rules, sign-in lock, audit entries, SD-card import (re-import skips duplicates), backup and restore.
+- Browser (Playwright, Chromium): all pages for the three roles at 1440 px, operator signed out by the admin returns to the sign-in page with the message, no console errors, no horizontal scroll at 390 px.
+
+## Not tested / still depends on others
+
+- No real device data yet (demo only). Render free plan wipes `DATA_DIR` on redeploy — use backup/restore. Board B keeps its own thresholds for the OLED; keep them equal to the dashboard values.

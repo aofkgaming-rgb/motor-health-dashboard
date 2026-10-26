@@ -17,6 +17,8 @@ interface Props {
   yFloor?: number; // force the axis to include this value (e.g. 0)
   compact?: boolean; // sparkline: no axes, no tooltip
   showDate?: boolean;
+  /** vertical markers, e.g. maintenance dates */
+  markers?: { ts: number; label: string }[];
   ariaLabel: string;
 }
 
@@ -45,6 +47,7 @@ export function TrendChart({
   yFloor,
   compact = false,
   showDate = false,
+  markers = [],
   ariaLabel,
 }: Props) {
   const wrap = useRef<HTMLDivElement>(null);
@@ -171,6 +174,16 @@ export function TrendChart({
                   )}
                 </g>
               ))}
+              {!compact &&
+                markers
+                  .filter((mk) => mk.ts >= geo.t0 && mk.ts <= geo.t1)
+                  .map((mk, i) => (
+                    <g key={`mk${i}`}>
+                      <line x1={geo.x(mk.ts)} x2={geo.x(mk.ts)} y1={0} y2={h} stroke="var(--series-3)" strokeDasharray="2 3" strokeWidth={1.5} />
+                      <title>{mk.label}</title>
+                      <path d={`M${geo.x(mk.ts)},-4 l4,4 l-4,4 l-4,-4 z`} fill="var(--series-3)" />
+                    </g>
+                  ))}
               {geo.paths.map((d, i) => (
                 <path
                   key={series[i].key}
@@ -216,7 +229,11 @@ export function TrendChart({
             left: Math.min(Math.max(m.l + geo.x(hoverInfo.ts) + 12, 0), Math.max(0, width - 170)),
           }}
         >
-          <div className="text-[var(--muted)] num mb-0.5">{clockTime(hoverInfo.ts)}</div>
+          <div className="text-[var(--muted)] num mb-0.5">
+            {showDate
+              ? new Date(hoverInfo.ts).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
+              : clockTime(hoverInfo.ts)}
+          </div>
           {hoverInfo.items.map(({ s, p }) => (
             <div key={s.key} className="flex items-center gap-1.5 text-[var(--text)] num">
               {series.length > 1 && <span className="inline-block w-2 h-2 rounded-full" style={{ background: s.color }} />}

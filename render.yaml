@@ -15,3 +15,9 @@ services:
       # Run the labelled demo when no device is connected (true/false).
       - key: DEMO_AUTOSTART
         value: "true"
+      # Where settings, users, maintenance, audit log and day files are stored.
+      # Free plan: the disk is wiped on every redeploy/restart, so use
+      # Administration -> System & data -> Download backup after changes.
+      # With a paid persistent disk mounted at /var/data, set DATA_DIR=/var/data.
+      # - key: DATA_DIR
+      #   value: /var/data
